@@ -1,13 +1,16 @@
 package XMail::Ctrl;
 
 use strict;
+use warnings;
 use vars qw($VERSION $AUTOLOAD);
 use Digest::MD5();
 use IO::Socket;
 
-# ABSTRACT - Crtl access to XMail server
 
-$VERSION = 2.3;
+
+# ABSTRACT: Crtl access to XMail server
+
+$VERSION = 2.4;
 
 =head1 NAME
 
@@ -25,8 +28,8 @@ released 07/10/2004
     my $XMail_admin      = "aaron.johnson";
     my $XMail_pass       = "mypass";
     my $XMail_port       = "6017";
-    my $XMail_host       = "aopen.hank.net";
-    my $test_domain      = "aopen.hank.net";
+    my $XMail_host       = "example.com";
+    my $test_domain      = "example.com";
     my $test_user        = "rick";
 
     my $xmail = XMail::Ctrl->new(
@@ -249,7 +252,7 @@ sub new {
 
     # Skip connection with argument no_connect
     $self->connect unless $args{no_connect};
-    $self;
+    return $self;
 }
 
 # connect
@@ -323,7 +326,7 @@ sub connect {
     }
 
     $buf =~ /^.(\d+)\s?(.*)/ and $self->last_success( $1, $2 );
-    1;
+    return 1;
 }
 
 # helo,
@@ -332,7 +335,7 @@ sub connect {
 # obviously will return an empty hash. Helo information
 # will be unset when a call to quit is made.
 sub helo {
-    (shift)->{_helo};
+    return (shift)->{_helo};
 }
 
 # connected,
@@ -364,7 +367,8 @@ sub last_error {
           if $self->{debug};
         $self->{_last_error} = { code => $code, description => $desc };
     }
-    $self->{_last_error};
+    return $self->{_last_error};
+    
 }
 
 # last_success,
@@ -379,7 +383,7 @@ sub last_success {
           if $self->{debug} > 2;
         $self->{_last_success} = { code => $code, description => $desc };
     }
-    $self->{_last_success};
+    return $self->{_last_success};
 }
 
 # debug,
@@ -387,7 +391,7 @@ sub last_success {
 sub debug {
     my ( $self, $set ) = @_;
     $self->{debug} = $set if defined $set;
-    $self->{debug};
+    return $self->{debug};
 }
 
 # _send, wraps socket recv + does dbg output. returns 0 or 1
@@ -407,26 +411,26 @@ sub _send {
 	   if $self->debug > 2;
 	 # still failing ? then report a permanent error...
        $self->last_error("socket::send failed, no connection")
-         and return 0
+         && return 0
          unless $self->connect && defined $self->{_io}->send($data);
 	}
 
     print STDOUT "debug:<< $data" if $self->debug > 1;
-    1;
+    return 1;
 }
 
 # _recv, wraps socket recv + does dbg output. returns indata or undef
 sub _recv {
     my ( $self, $bufsz ) = @_;
     my $buf;
-    return undef unless $self->connected;
+    return unless $self->connected;
 
     $self->last_error("socket::recv failed, no connection")
-      and return undef
+      && return
       unless $self->connected && defined $self->{_io}->recv( $buf, $bufsz || 128 );
       
     print STDOUT "debug:>> $buf" if $self->debug > 1;
-    $buf;
+    return $buf;
 }
 
 # xcommand, invoked by the autoloaded method
@@ -486,13 +490,13 @@ sub xcommand {
     }
 
     # no connection, try bring one up, return on failure
-    $self->connect or return undef;
+    $self->connect or return;
 
     # make debug output reader friendly
     print STDOUT "\n" if $self->debug > 1;
 
     # issue the command, return if send failure
-    $self->_send($command) or return undef;
+    $self->_send($command) or return;
 
     local ($_);
     my $sck = $self->{_io};
@@ -526,13 +530,13 @@ sub xcommand {
             }
             else {
                 $self->last_error( $mode, $desc );
-                return undef;
+                return;
             }
         }
     }
 
     $self->last_error("Unknown recv error")
-      and return undef
+      and return
       if not defined $mode;    # cannot happen ?! :~/
 
     # got a +00101 code, xmail expects a list
@@ -555,13 +559,13 @@ sub xcommand {
         # determine whether the list was accepted..
         $line =~ /^(.)(\d+)\s?(.*)/
           or $self->last_error( $line || "Unknown recv error" )
-          and return undef;
+          and return;
 
         ( $charge, $mode, $desc ) = ( $1, $2, $3 );
 
         # set error and return unless good return status
         $self->last_error( $mode, $desc )
-          and return undef
+          and return
           unless $charge eq '+';
 
         # command_ok should be updated here aswell
@@ -602,16 +606,19 @@ sub command_ok {
     my ( $self, $value ) = @_;
     return $self->{_command_ok} if ( !defined($value) );
     $self->{_command_ok} = ( $value eq '+' ) ? 1 : 0;
+    return $self->{_command_ok};
 }
 
 sub raw_list {
     my ( $self, $value ) = @_;
     if ($value) {
         $self->{raw_list} = $value;
+        return;
     }
     else {
         return $self->{raw_list};
     }
+     
 }
 
 sub quit {
@@ -624,6 +631,7 @@ sub quit {
         $self->{_io}->close;
         undef $self->{_io};
     }
+    return;
 }
 
 sub AUTOLOAD {
@@ -633,7 +641,8 @@ sub AUTOLOAD {
     my $command = $1;
     if ( $command =~ /[A-Z]/ ) { exit }
     $args->{command} = $command;
-    $self->xcommand($args);
+    return $self->xcommand($args);
+    
 }
 
 1;
