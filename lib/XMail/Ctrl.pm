@@ -184,11 +184,6 @@ not tested this fully.  Please send information on what you
 are attempting if you feel the module is not providing the
 correct function.
 
-=head1 AUTHOR
-
-Aaron Johnson
-solution@gina.net
-
 =head1 THANKS
 
 Thanks to Davide Libenzi for a sane mail server with
@@ -214,13 +209,6 @@ debugging output.
 =head1 CHANGES
 
 Changes file included in distro
-
-=head1 COPYRIGHT
-
-Copyright (c) 2000,2001,2002,2003 Aaron Johnson.
-All rights Reserved. This module is free software.
-It may be used,  redistributed and/or modified under
-the same terms as Perl itself.
 
 =cut
 
